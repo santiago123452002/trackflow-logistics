@@ -1,6 +1,18 @@
 const express = require("express");
 const router = express.Router();
 const Pedido = require("../models/Pedido");
+const Conductor = require("../models/Conductor");
+const Cliente = require("../models/Cliente");
+const Evento = require("../models/Evento");
+const Ruta = require("../models/Ruta");
+
+const COLECCIONES = {
+  pedidos: Pedido,
+  conductores: Conductor,
+  clientes: Cliente,
+  eventos: Evento,
+  rutas: Ruta,
+};
 
 // Q1 — Pedidos por ciudad y estado (sin filtro de fecha)
 router.get("/q1", async (req, res) => {
@@ -133,16 +145,24 @@ router.post("/pedidos", async (req, res) => {
   }
 });
 
-// READ — Buscar un pedido por ID
+// READ — Buscar un pedido por ID o numero_pedido
 router.get("/pedidos/:id", async (req, res) => {
   try {
-    const pedido = await Pedido.findById(req.params.id);
+    const { id } = req.params;
+    let pedido;
+
+    if (id.match(/^[0-9a-fA-F]{24}$/)) {
+      pedido = await Pedido.findById(id);
+    } else {
+      pedido = await Pedido.findOne({ numero_pedido: id });
+    }
+
     if (!pedido) {
       return res.status(404).json({ error: "Pedido no encontrado" });
     }
     res.json({ datos: pedido });
   } catch (err) {
-    res.status(400).json({ error: "ID inválido" });
+    res.status(400).json({ error: err.message });
   }
 });
 
@@ -210,8 +230,6 @@ router.get("/q4", async (req, res) => {
 // Q5 — Distribución de eventos de estado por tipo
 router.get("/q5", async (req, res) => {
   try {
-    const Evento = require("../models/Evento");
-
     const resultado = await Evento.aggregate([
       {
         $group: {
@@ -235,4 +253,35 @@ router.get("/q5", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// Consulta de agregación dinámica
+router.post("/agregacion", async (req, res) => {
+  try {
+    const { coleccion, pipeline } = req.body;
+
+    if (!coleccion || !COLECCIONES[coleccion]) {
+      return res.status(400).json({
+        error: `Colección no válida. Use: ${Object.keys(COLECCIONES).join(", ")}`,
+      });
+    }
+
+    if (!Array.isArray(pipeline)) {
+      return res
+        .status(400)
+        .json({ error: "El pipeline debe ser un array de etapas" });
+    }
+
+    const Modelo = COLECCIONES[coleccion];
+    const resultado = await Modelo.aggregate(pipeline).limit(200);
+
+    res.json({
+      total: resultado.length,
+      coleccion,
+      datos: resultado,
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 module.exports = router;

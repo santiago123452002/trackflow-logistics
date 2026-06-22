@@ -1,8 +1,17 @@
 const mongoose = require("mongoose");
 
+const datosClienteSchema = new mongoose.Schema({
+  nombre: String,
+  telefono: String,
+  direccion: String,
+  ciudad: String,
+  barrio: String,
+});
+
 const schema = new mongoose.Schema({
   numero_pedido: String,
   cliente_id: mongoose.Schema.Types.ObjectId,
+  datos_cliente: datosClienteSchema,
   conductor_id: mongoose.Schema.Types.ObjectId,
   ruta_id: mongoose.Schema.Types.ObjectId,
   estado: String,

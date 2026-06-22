@@ -22,6 +22,8 @@ export default function CRUD() {
     observaciones: "",
   });
 
+  const [ultimoCreado, setUltimoCreado] = useState(null);
+
   const [idBuscar, setIdBuscar] = useState("");
   const [pedidoEncontrado, setPedidoEncontrado] = useState(null);
 
@@ -54,6 +56,10 @@ export default function CRUD() {
       });
       const json = await res.json();
       if (res.ok) {
+        setUltimoCreado({
+          _id: json.datos._id,
+          numero_pedido: json.datos.numero_pedido,
+        });
         mostrarMensaje("ok", `Pedido creado: ${json.datos.numero_pedido}`);
         setFormCrear({
           numero_pedido: "",
@@ -248,6 +254,25 @@ export default function CRUD() {
           <button className="btn" onClick={crearPedido}>
             Crear Pedido
           </button>
+          {ultimoCreado && (
+            <div className="detail-box" style={{ gridColumn: "1 / -1" }}>
+              <p style={{ fontSize: 12, color: "#2d8a2d", marginBottom: 6 }}>
+                Ultimo pedido creado — usa estos datos para buscar/actualizar/eliminar:
+              </p>
+              <table>
+                <tbody>
+                  <tr>
+                    <td><strong>_id (MongoDB)</strong></td>
+                    <td style={{ fontFamily: "monospace", fontSize: 12 }}>{ultimoCreado._id}</td>
+                  </tr>
+                  <tr>
+                    <td><strong>numero_pedido</strong></td>
+                    <td style={{ fontFamily: "monospace", fontSize: 12 }}>{ultimoCreado.numero_pedido}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 
@@ -255,7 +280,7 @@ export default function CRUD() {
         <div>
           <div className="form-grid">
             <input
-              placeholder="ID del pedido (ObjectId de MongoDB)"
+              placeholder="ID (ObjectId) o número de pedido (ej: TF-00000001)"
               value={idBuscar}
               onChange={(e) => setIdBuscar(e.target.value)}
             />

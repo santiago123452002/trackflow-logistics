@@ -2,6 +2,7 @@ import { useState } from "react";
 import Navbar from "./components/Navbar";
 import MatrixRain from "./components/MatrixRain";
 import CRUD from "./components/CRUD";
+import Agregacion from "./components/Agregacion";
 import Q1 from "./components/Q1";
 import Q2 from "./components/Q2";
 import Q3 from "./components/Q3";
@@ -54,6 +55,12 @@ export default function App() {
           >
             CRUD
           </button>
+          <button
+            className={`tab ${tab === "agregacion" ? "active" : ""}`}
+            onClick={() => setTab("agregacion")}
+          >
+            Agregación
+          </button>
         </div>
 
         {tab === "q1" && <Q1 />}
@@ -62,6 +69,7 @@ export default function App() {
         {tab === "q4" && <Q4 />}
         {tab === "q5" && <Q5 />}
         {tab === "crud" && <CRUD />}
+        {tab === "agregacion" && <Agregacion />}
       </div>
     </div>
   );

@@ -53,11 +53,26 @@ const rutaSchema = new mongoose.Schema({
   hora_fin: Date,
   distancia_km: Number,
   pedidos_asignados: [mongoose.Schema.Types.ObjectId],
+  paradas: [
+    {
+      numero_pedido: String,
+      direccion_destino: String,
+      estado_parada: String,
+      hora_llegada: Date,
+    },
+  ],
   estado_ruta: String,
 });
 const pedidoSchema = new mongoose.Schema({
   numero_pedido: String,
   cliente_id: mongoose.Schema.Types.ObjectId,
+  datos_cliente: {
+    nombre: String,
+    telefono: String,
+    direccion: String,
+    ciudad: String,
+    barrio: String,
+  },
   conductor_id: mongoose.Schema.Types.ObjectId,
   ruta_id: mongoose.Schema.Types.ObjectId,
   estado: String,
@@ -149,13 +164,14 @@ async function main() {
 
   // 2. Clientes
   const clienteIds = [];
+  const clientesData = {};
   await insertBatches(
     Cliente,
     TOTAL.clientes,
     () => {
       const id = new mongoose.Types.ObjectId();
       clienteIds.push(id);
-      return {
+      const data = {
         _id: id,
         nit_cedula: faker.string.numeric(10),
         nombre: faker.company.name(),
@@ -171,12 +187,15 @@ async function main() {
           new Date("2024-12-31"),
         ),
       };
+      clientesData[id.toString()] = data;
+      return data;
     },
     "clientes",
   );
 
   // 3. Rutas
   const rutaIds = [];
+  const ESTADOS_PARADA = ["pendiente", "en_proceso", "completada", "fallida"];
   await insertBatches(
     Ruta,
     TOTAL.rutas,
@@ -185,6 +204,13 @@ async function main() {
       rutaIds.push(id);
       const inicio = randDate(new Date("2023-01-01"), new Date("2025-12-31"));
       const fin = new Date(inicio.getTime() + randInt(2, 10) * 3600000);
+      const numParadas = randInt(1, 5);
+      const paradas = Array.from({ length: numParadas }, (_, i) => ({
+        numero_pedido: "TF-" + faker.string.numeric(8),
+        direccion_destino: faker.location.streetAddress(),
+        estado_parada: pick(ESTADOS_PARADA),
+        hora_llegada: new Date(inicio.getTime() + (i + 1) * 1800000),
+      }));
       return {
         _id: id,
         conductor_id: pick(conductorIds),
@@ -195,6 +221,7 @@ async function main() {
         hora_fin: fin,
         distancia_km: parseFloat((Math.random() * 80 + 5).toFixed(2)),
         pedidos_asignados: [],
+        paradas: paradas,
         estado_ruta: pick(["activa", "completada", "cancelada"]),
       };
     },
@@ -214,10 +241,19 @@ async function main() {
         new Date("2025-12-31"),
       );
       const entrega = new Date(asignacion.getTime() + randInt(15, 300) * 60000);
+      const clienteId = pick(clienteIds);
+      const cliente = clientesData[clienteId.toString()];
       return {
         _id: id,
         numero_pedido: "TF-" + faker.string.numeric(8),
-        cliente_id: pick(clienteIds),
+        cliente_id: clienteId,
+        datos_cliente: {
+          nombre: cliente.nombre,
+          telefono: cliente.telefono,
+          direccion: cliente.direccion,
+          ciudad: cliente.ciudad,
+          barrio: cliente.barrio,
+        },
         conductor_id: pick(conductorIds),
         ruta_id: pick(rutaIds),
         estado: pick(ESTADOS),
